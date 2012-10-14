@@ -22,7 +22,7 @@ function getRandomQuote() {
 	//session already started????
 	//session_start(); 	
 	
-//TODO: remove this as ir workaround to make PHP framework work
+//TODO: remove this as it is a workaround to make PHP framework work
 	$_SESSION['asked_quotes_IDs']= NULL;
 	
 	/*--------------------------------------------------------------------*/
@@ -74,7 +74,6 @@ function getRandomQuote() {
 		$originsToChooseFrom = $stmt->fetchAll(PDO::FETCH_OBJ);
 		//leaving only origin_text in elements, not objects
 		for($i = 0; $i < count($originsToChooseFrom); $i++){
-			//$origins_to_choose_from[$i] = $originsToChooseFrom[$i]->origin_text;
 			$originsToChooseFrom[$i] = $originsToChooseFrom[$i]->origin_text;
 		}
 	} catch(PDOException $e) {
