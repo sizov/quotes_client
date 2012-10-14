@@ -4,15 +4,17 @@ require 'Slim/Slim.php';
 /* CONSTANTS */
 define("AMOUNT_QUOTES_IN_SET","6");
 define("AMOUNT_ORIGINS_TO_CHOOSE","4");
+define("SEND_CORRECT_ANSWER",true);
 	
 $app = new Slim();
 
 $app->get('/getRandomQuote', 'getRandomQuote');
+$app->get('/verifyAnswer', 'verifyAnswer');
 
 $app->run();
 
 /*================================================*/
-/*Quotes*/
+/*get andom quote*/
 /*================================================*/
 
 function getRandomQuote() {
@@ -72,7 +74,7 @@ function getRandomQuote() {
 		$stmt->bindParam("origin_type_id", $origin_type_id);
 		$stmt->execute();
 		$originsToChooseFrom = $stmt->fetchAll(PDO::FETCH_OBJ);
-		//leaving only origin_text in elements, not objects
+		/*leaving only origin_text in elements, not objects*/
 		for($i = 0; $i < count($originsToChooseFrom); $i++){
 			$originsToChooseFrom[$i] = $originsToChooseFrom[$i]->origin_text;
 		}
@@ -118,6 +120,59 @@ function getRandomQuote() {
 	$db = null;
 	echo json_encode($json_data);	
 } 
+
+
+/*================================================*/
+/*Verify answer*/
+/*================================================*/
+
+function verifyAnswer() {
+	$request = Slim::getInstance()->request();
+	
+	/* get result type*/
+	$quoteText = $request->get("quote_text"); 
+	$answeredOrigin =  $request->get("origin");
+
+	/* select all possible origins that have provided quote*/	
+	$sql = "
+			SELECT `origin_text`	
+			FROM `quote_origins`
+			WHERE id IN (
+							SELECT `origin_id`
+							FROM `quotes`
+							WHERE quote_text = :quote_text
+						)
+			";				
+	try {
+		$db = getConnection();
+		$stmt = $db->prepare($sql);  		
+		$stmt->bindParam("quote_text", $quoteText);
+		$stmt->execute();
+		$correctOrigins = $stmt->fetchAll(PDO::FETCH_OBJ);
+		/*leaving only origin_text in elements, not objects*/
+		for($i = 0; $i < count($correctOrigins); $i++){
+			$correctOrigins[$i] = $correctOrigins[$i]->origin_text;
+		}
+	} catch(PDOException $e) {
+		echo '{"error":{"text":'. $e->getMessage() .'}}'; 
+	}
+	
+	/*if array of correct origins is empty -> there are no origins for providede quote*/
+	if(count($correctOrigins) == 0){
+		echo '{"error":{"text":"No correct anwser in database"}}'; 
+	}
+	else{
+		$isUserAnswerCorrect = in_array($answeredOrigin, $correctOrigins);
+		if(SEND_CORRECT_ANSWER){			
+			echo json_encode(array('isUserAnswerCorrect'=>$isUserAnswerCorrect, 'allCorrectAnswers'=>$correctOrigins));
+		}
+		else{
+			echo json_encode(array('isUserAnswerCorrect'=>$isUserAnswerCorrect));
+		}
+	}	
+	
+	$db = null;
+}
 
 /*================================================*/
 /*Other*/
