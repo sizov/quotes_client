@@ -161,9 +161,14 @@ body{
     /*background: #e5e5e5 url(../img/broken_noise.png) repeat top left;*//
 }
 
-.originButton {
-    font-size: 24px;
-    color: #ffffff;
+.originsList{
+    list-style: none;
+    padding: 0px
+}
+
+.possibleOrigin{
+	/*font-size: 24px;*/
+    /*color: #ffffff;*/
     /*cursor: pointer;*/
     /*opacity: 0.6;*/
     /*padding: 5px 15px;*/
@@ -171,12 +176,10 @@ body{
     text-decoration: none;
 }
 
-.originsList{
-    list-style: none;
-    padding: 0px
+.correctOrigin{
+	font-weight: bold;
+	text-decoration: none;
 }
-
-
 
 
 

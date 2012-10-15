@@ -1,13 +1,13 @@
 <div class="container-fluid">
 
 	<div>
-		{{quote}}
+		{{isUserAnswerCorrect}} {{quote}}
 	</div>
 	
 	<div>
-		<ul>
-			<li ng-repeat="origin in origins">
-				<a>{{origin}}</a>
+		<ul>			
+			<li ng-repeat="origin in origins">				
+				<a ng-class="getClass(origin, correctOrigin)" href="" ng-click="originClickHandler(quote, origin)">{{origin}}</a>
 			</li>
 		</ul>
 	</div>

@@ -131,7 +131,7 @@ function verifyAnswer() {
 	
 	/* get result type*/
 	$quoteText = $request->get("quote_text"); 
-	$answeredOrigin =  $request->get("origin");
+	$answeredOriginText =  $request->get("origin_text");
 
 	/* select all possible origins that have provided quote*/	
 	$sql = "
@@ -162,7 +162,7 @@ function verifyAnswer() {
 		echo '{"error":{"text":"No correct anwser in database"}}'; 
 	}
 	else{
-		$isUserAnswerCorrect = in_array($answeredOrigin, $correctOrigins);
+		$isUserAnswerCorrect = in_array($answeredOriginText, $correctOrigins);
 		if(SEND_CORRECT_ANSWER){			
 			echo json_encode(array('isUserAnswerCorrect'=>$isUserAnswerCorrect, 'allCorrectAnswers'=>$correctOrigins));
 		}
