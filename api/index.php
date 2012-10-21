@@ -53,7 +53,7 @@ function getRandomQuote() {
 	/* if user was NOT already asked any questions*/
 	/*-------------------------------------------------------------------------*/	
 	if (!isset($_SESSION['asked_quotes_IDs']) || count($_SESSION['asked_quotes_IDs']) == 0){		
-	
+
 		/*setting to empty array as this session var used futher down in the code*/
 		$_SESSION['asked_quotes_IDs']= array();
 		
@@ -90,17 +90,13 @@ function getRandomQuote() {
 			isset($_SESSION['last_asked_origins_to_choose_from']) &&
 			isset($_SESSION['asked_quotes_IDs']) &&
 			(!isset($_SESSION['last_answered_quote_text']) ||
-			$_SESSION['last_answered_quote_text'] <> $_SESSION['last_asked_quote_text']	)){				
-		
-		json_encode(array (	'last_asked_quote_text'=>$_SESSION['last_asked_quote_text'],
-							'last_asked_origins_to_choose_from'=>$_SESSION['last_asked_origins_to_choose_from'],
-							'asked_quotes_IDs'=>$_SESSION['asked_quotes_IDs'],
-							'last_answered_quote_text'=>$_SESSION['last_answered_quote_text']));						
+			$_SESSION['last_answered_quote_text'] <> $_SESSION['last_asked_quote_text']	)){					
 		
 		sendQuestionAndAnswers(	$_SESSION['last_asked_quote_text'],
 								$_SESSION['last_asked_origins_to_choose_from'],
 								$_SESSION['asked_quotes_IDs'],
 								AMOUNT_QUOTES_IN_SET);
+								
 								
 		exit();
 	}
@@ -111,6 +107,7 @@ function getRandomQuote() {
 	/* set of questions */
 	/*------------------------------------------------------------------------------------*/	
 	else{
+	
 		$askedQuotesIDs = $_SESSION['asked_quotes_IDs'];
 
 		/* if set of quotes questions has ended - exit with info message */
