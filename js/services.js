@@ -9,7 +9,8 @@ angular.module('quotesClientServices', ['ngResource']).
 		});
 	}).
     factory('VerifyAnswerService', function($resource){
-		return $resource('api/verifyAnswer', {}, {
-			getRandomQuote: {method:'GET'}
-		});
-	});;
+		return $resource('api/verifyAnswer', {}, {});
+	}).
+	factory('ResetUserStatsService', function($resource){
+		return $resource('api/resetUserStats', {}, {});
+	});

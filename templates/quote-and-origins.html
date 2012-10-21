@@ -1,15 +1,30 @@
 <div class="container-fluid">
-
-	<div>
-		{{isUserAnswerCorrect}} {{quote}}
-	</div>
 	
-	<div>
-		<ul>			
-			<li ng-repeat="origin in origins">				
-				<a ng-class="getClass(origin, correctOrigin)" href="" ng-click="originClickHandler(quote, origin)">{{origin}}</a>
-			</li>
-		</ul>
+	<div class="container">	  
+		<h1>{{quote}}</h1>	  
+		<div class="container">	  
+			<ul class="unstyled">			
+				<li ng-repeat="origin in origins">				
+					<button
+						ng-class="getOriginButtonClass(origin, allCorrectAnswers)"
+						ng-click="originClickHandler(quote, origin)"
+						ng-disabled="answerVerificationReceived"
+						type="button">
+							{{origin}}
+					</button>
+				</li>
+			</ul>
+			<div>
+				<span>{{quotesAsked}} / {{quotesInSet}}</span>
+				<button				
+					class="btn btn-inverse pull-right"
+					type="button"
+					ng-show="answerVerificationReceived"
+					ng-click="nextClickHandler()">
+						>>
+				</button>
+			<div>
+		</div>		
 	</div>
 
 </div>

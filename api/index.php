@@ -2,14 +2,37 @@
 require 'Slim/Slim.php';
 
 /* CONSTANTS */
-define("AMOUNT_QUOTES_IN_SET","6");
+define("AMOUNT_QUOTES_IN_SET","4");
 define("AMOUNT_ORIGINS_TO_CHOOSE","4");
 define("SEND_CORRECT_ANSWER",true);
+
+define("INFO_CODE_SET_ENDED", 0);
+define("INFO_CODE_NO_MORE_UNIQUE_QUOTES", 1);
+define("ERROR_CODE_SQL_PROCESSING", 0);
+define("ERROR_CODE_NO_CORRECT_ANSWER_IN_DB", 1);
+
+session_cache_limiter(false);
+session_start();
 	
 $app = new Slim();
 
+/*
+$app->add(new Slim_Middleware_SessionCookie(array(
+    'expires' => '20 minutes',
+    'path' => '/',
+    'domain' => null,
+    'secure' => false,
+    'httponly' => false,
+    'name' => 'slim_session',
+    'secret' => 'CHANGE_ME',
+    'cipher' => MCRYPT_RIJNDAEL_256,
+    'cipher_mode' => MCRYPT_MODE_CBC
+)));
+*/
+
 $app->get('/getRandomQuote', 'getRandomQuote');
 $app->get('/verifyAnswer', 'verifyAnswer');
+$app->get('/resetUserStats', 'resetUserStats');
 
 $app->run();
 
@@ -21,20 +44,18 @@ function getRandomQuote() {
 	$request = Slim::getInstance()->request();
 	$origin_type_id = $request->get('origin_type_id');
 	
-	//session already started????
-	//session_start(); 	
+	/*if user requested reset*/
+	if(isset($_GET['restart']) && $_GET["restart"] === "1"){
+		resetUserStats();
+	}	
 	
-//TODO: remove this as it is a workaround to make PHP framework work
-	$_SESSION['asked_quotes_IDs']= NULL;
+	/*-------------------------------------------------------------------------*/
+	/* if user was NOT already asked any questions*/
+	/*-------------------------------------------------------------------------*/	
+	if (!isset($_SESSION['asked_quotes_IDs']) || count($_SESSION['asked_quotes_IDs']) == 0){		
 	
-	/*--------------------------------------------------------------------*/
-	/* select quote as question */
-	/*--------------------------------------------------------------------*/
-	
-	/* if user was NOT already asked any questions or restart was launched*/
-	if (!isset($_SESSION['asked_quotes_IDs']) || isset($_GET['restart']) && $_GET["restart"] === "1"){		
-	
-		$_SESSION['asked_quotes_IDs'] = array();
+		/*setting to empty array as this session var used futher down in the code*/
+		$_SESSION['asked_quotes_IDs']= array();
 		
 		$sql = "	
 				SELECT *
@@ -46,21 +67,88 @@ function getRandomQuote() {
 									)
 				ORDER BY rand()
 				LIMIT 1
-				";			
-	}	
-	try {
-		$db = getConnection();
-		$stmt = $db->prepare($sql);  
-		$stmt->bindParam("origin_type_id", $origin_type_id);
-		$stmt->execute();
-		$quoteQuestion = $stmt->fetchObject();		
-	} catch(PDOException $e) {
-		echo '{"error":{"text":'. $e->getMessage() .'}}'; 
+				";										
+
+		/*Retrieve question form DB*/
+		try {
+			$db = getConnection();
+			$stmt = $db->prepare($sql);  
+			$stmt->bindParam("origin_type_id", $origin_type_id);
+			$stmt->execute();
+			$quoteQuestion = $stmt->fetchObject();		
+		} catch(PDOException $e) {
+			sendError(ERROR_CODE_SQL_PROCESSING, $e->getMessage());			
+			exit();
+		}
+	}		
+	
+	/*------------------------------------------------------------------------------------*/
+	/* If user did not answer any questions, but we sent him them OR */
+	/* if he did not answer last asked question, let's ask last question again */
+	/*------------------------------------------------------------------------------------*/	
+	else if(isset($_SESSION['last_asked_quote_text']) &&
+			isset($_SESSION['last_asked_origins_to_choose_from']) &&
+			isset($_SESSION['asked_quotes_IDs']) &&
+			(!isset($_SESSION['last_answered_quote_text']) ||
+			$_SESSION['last_answered_quote_text'] <> $_SESSION['last_asked_quote_text']	)){				
+		
+		json_encode(array (	'last_asked_quote_text'=>$_SESSION['last_asked_quote_text'],
+							'last_asked_origins_to_choose_from'=>$_SESSION['last_asked_origins_to_choose_from'],
+							'asked_quotes_IDs'=>$_SESSION['asked_quotes_IDs'],
+							'last_answered_quote_text'=>$_SESSION['last_answered_quote_text']));						
+		
+		sendQuestionAndAnswers(	$_SESSION['last_asked_quote_text'],
+								$_SESSION['last_asked_origins_to_choose_from'],
+								$_SESSION['asked_quotes_IDs'],
+								AMOUNT_QUOTES_IN_SET);
+								
+		exit();
 	}
 	
-	/*---------------------------------------------------*/
+	/*------------------------------------------------------------------------------------*/
+	/* Finally if we got here, only option that remains - */
+	/* user has already answered some questions and it's time to retrieve new one or finish
+	/* set of questions */
+	/*------------------------------------------------------------------------------------*/	
+	else{
+		$askedQuotesIDs = $_SESSION['asked_quotes_IDs'];
+
+		/* if set of quotes questions has ended - exit with info message */
+		if(count($askedQuotesIDs) == AMOUNT_QUOTES_IN_SET){					
+			sendInfo(INFO_CODE_SET_ENDED);			
+			exit();
+		}
+		
+		$askedQuotesIDsString = "(".implode(',', $askedQuotesIDs).")";
+				
+		$sql = "
+				SELECT *
+				FROM quotes
+				WHERE id NOT IN ".$askedQuotesIDsString."
+				AND	origin_id IN (
+									SELECT id
+									FROM quote_origins
+									WHERE type_id=:origin_type_id
+								)
+				ORDER BY rand()
+				LIMIT 1
+				";				
+				
+		/*Retrieve question form DB*/
+		try {
+			$db = getConnection();
+			$stmt = $db->prepare($sql);  
+			$stmt->bindParam("origin_type_id", $origin_type_id);
+			$stmt->execute();
+			$quoteQuestion = $stmt->fetchObject();		
+		} catch(PDOException $e) {
+			sendError(ERROR_CODE_SQL_PROCESSING, $e->getMessage());			
+			exit();
+		}
+	}	
+		
+	
 	/* select origins by provided type as answer options */
-	/*---------------------------------------------------*/
 	$sql = "
 			SELECT origin_text
 			FROM quote_origins
@@ -79,12 +167,11 @@ function getRandomQuote() {
 			$originsToChooseFrom[$i] = $originsToChooseFrom[$i]->origin_text;
 		}
 	} catch(PDOException $e) {
-		echo '{"error":{"text":'. $e->getMessage() .'}}'; 
+		sendError(ERROR_CODE_SQL_PROCESSING, $e->getMessage());			
+		exit();
 	}			
 	
-	/*--------------------------------*/
 	/* select correct answer (origin) */
-	/*--------------------------------*/
 	$sql = "
 			SELECT origin_text
 			FROM quote_origins
@@ -99,27 +186,45 @@ function getRandomQuote() {
 		$correctOriginText = $stmt->fetchObject();		
 		$correctOriginText = $correctOriginText->origin_text;
 	} catch(PDOException $e) {
-		echo '{"error":{"text":'. $e->getMessage() .'}}'; 
+		sendError(ERROR_CODE_SQL_PROCESSING, $e->getMessage());			
+		exit();
 	}						
 		
-	//replace one of answers with correct answer
+	/*replace one of answers with correct answer*/
 	if(!in_array($correctOriginText, $originsToChooseFrom)) {
 		$originsToChooseFrom[0] = $correctOriginText;
 	}
 	shuffle($originsToChooseFrom);
 	
-	/* prepare result */	
-	$quoteQuestion = $quoteQuestion->quote_text;
-	$json_data = array ('quote'=>$quoteQuestion,
-						'origins'=>$originsToChooseFrom/*,
-						'quotesAsked'=>count($asked_quotes_IDs),
-						'quotesInSet'=>$AMOUNT_QUOTES_IN_SET
-						*/);
+	$askedQuoteIDs = $_SESSION['asked_quotes_IDs'];
+	$askedQuoteIDs[] = $quoteQuestion->id;	
 		
-	/* output to JSON */
-	$db = null;
-	echo json_encode($json_data);	
+	/* send data */	
+	sendQuestionAndAnswers(	$quoteQuestion->quote_text,
+							$originsToChooseFrom,
+							$askedQuoteIDs,
+							AMOUNT_QUOTES_IN_SET);
 } 
+
+function sendQuestionAndAnswers($quoteText,
+								$originsToChooseFrom,
+								$askedQuotesIDs,
+								$amountQuotesInSet){
+								
+	$db = null;
+								
+	/*storing history of user answers in session*/
+	$_SESSION['last_asked_quote_text'] = $quoteText;		
+	$_SESSION['last_asked_origins_to_choose_from'] = $originsToChooseFrom;		
+	$_SESSION['asked_quotes_IDs'] = $askedQuotesIDs;
+	
+	$json_data = array ('quote'=>$quoteText,
+						'origins'=>$originsToChooseFrom,
+						'quotesAsked'=>count($askedQuotesIDs),
+						'quotesInSet'=>$amountQuotesInSet);						
+	
+	echo json_encode($json_data);	
+}
 
 
 /*================================================*/
@@ -133,6 +238,8 @@ function verifyAnswer() {
 	$quoteText = $request->get("quote_text"); 
 	$answeredOriginText =  $request->get("origin_text");
 
+	$_SESSION['last_answered_quote_text'] = $quoteText;
+	
 	/* select all possible origins that have provided quote*/	
 	$sql = "
 			SELECT `origin_text`	
@@ -154,12 +261,14 @@ function verifyAnswer() {
 			$correctOrigins[$i] = $correctOrigins[$i]->origin_text;
 		}
 	} catch(PDOException $e) {
-		echo '{"error":{"text":'. $e->getMessage() .'}}'; 
+		sendError(ERROR_CODE_SQL_PROCESSING, $e->getMessage());			
+		exit();
 	}
 	
 	/*if array of correct origins is empty -> there are no origins for providede quote*/
 	if(count($correctOrigins) == 0){
-		echo '{"error":{"text":"No correct anwser in database"}}'; 
+		sendError(ERROR_CODE_NO_CORRECT_ANSWER_IN_DB);			
+		exit();
 	}
 	else{
 		$isUserAnswerCorrect = in_array($answeredOriginText, $correctOrigins);
@@ -173,6 +282,26 @@ function verifyAnswer() {
 	
 	$db = null;
 }
+
+function resetUserStats() {
+	unset($_SESSION['last_asked_quote_text']);
+	unset($_SESSION['last_answered_quote_text']);
+	unset($_SESSION['last_asked_origins_to_choose_from']);
+	unset($_SESSION['asked_quotes_IDs']);	
+}
+
+function sendInfo($infoCode){
+	$db = null;	
+	$json_data = array ('infoCode'=>$infoCode);
+	echo json_encode($json_data);	
+}
+
+function sendError($errorCode, $errorMessage){
+	$db = null;	
+	$json_data = array ('errorCode'=>$errorCode, 'errorMessage'=>$errorMessage);
+	echo json_encode($json_data);	
+}
+
 
 /*================================================*/
 /*Other*/
