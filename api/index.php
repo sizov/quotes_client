@@ -2,37 +2,24 @@
 require 'Slim/Slim.php';
 
 /* CONSTANTS */
-define("AMOUNT_QUOTES_IN_SET","4");
-define("AMOUNT_ORIGINS_TO_CHOOSE","4");
+define("AMOUNT_QUOTES_IN_SET","5");
+define("AMOUNT_ORIGINS_TO_CHOOSE","3");
 define("SEND_CORRECT_ANSWER",true);
 
 define("INFO_CODE_SET_ENDED", 0);
-define("INFO_CODE_NO_MORE_UNIQUE_QUOTES", 1);
 define("ERROR_CODE_SQL_PROCESSING", 0);
 define("ERROR_CODE_NO_CORRECT_ANSWER_IN_DB", 1);
+define("ERROR_CODE_NO_MORE_UNIQUE_QUOTES", 2);
 
 session_cache_limiter(false);
 session_start();
 	
 $app = new Slim();
 
-/*
-$app->add(new Slim_Middleware_SessionCookie(array(
-    'expires' => '20 minutes',
-    'path' => '/',
-    'domain' => null,
-    'secure' => false,
-    'httponly' => false,
-    'name' => 'slim_session',
-    'secret' => 'CHANGE_ME',
-    'cipher' => MCRYPT_RIJNDAEL_256,
-    'cipher_mode' => MCRYPT_MODE_CBC
-)));
-*/
-
 $app->get('/getRandomQuote', 'getRandomQuote');
 $app->get('/verifyAnswer', 'verifyAnswer');
 $app->get('/resetUserStats', 'resetUserStats');
+$app->get('/userResult', 'sendUserResult');
 
 $app->run();
 
@@ -52,10 +39,10 @@ function getRandomQuote() {
 	/*-------------------------------------------------------------------------*/
 	/* if user was NOT already asked any questions*/
 	/*-------------------------------------------------------------------------*/	
-	if (!isset($_SESSION['asked_quotes_IDs']) || count($_SESSION['asked_quotes_IDs']) == 0){		
+	if (!isset($_SESSION['askedQuotesIDs']) || count($_SESSION['askedQuotesIDs']) == 0){		
 
 		/*setting to empty array as this session var used futher down in the code*/
-		$_SESSION['asked_quotes_IDs']= array();
+		$_SESSION['askedQuotesIDs']= array();
 		
 		$sql = "	
 				SELECT *
@@ -86,15 +73,15 @@ function getRandomQuote() {
 	/* If user did not answer any questions, but we sent him them OR */
 	/* if he did not answer last asked question, let's ask last question again */
 	/*------------------------------------------------------------------------------------*/	
-	else if(isset($_SESSION['last_asked_quote_text']) &&
-			isset($_SESSION['last_asked_origins_to_choose_from']) &&
-			isset($_SESSION['asked_quotes_IDs']) &&
-			(!isset($_SESSION['last_answered_quote_text']) ||
-			$_SESSION['last_answered_quote_text'] <> $_SESSION['last_asked_quote_text']	)){					
+	else if(isset($_SESSION['lastAskedQuoteText']) &&
+			isset($_SESSION['lastAskedOriginsToChooseFrom']) &&
+			isset($_SESSION['askedQuotesIDs']) &&
+			(!isset($_SESSION['lastAnsweredQuoteText']) ||
+			$_SESSION['lastAnsweredQuoteText'] <> $_SESSION['lastAskedQuoteText']	)){					
 		
-		sendQuestionAndAnswers(	$_SESSION['last_asked_quote_text'],
-								$_SESSION['last_asked_origins_to_choose_from'],
-								$_SESSION['asked_quotes_IDs'],
+		sendQuestionAndAnswers(	$_SESSION['lastAskedQuoteText'],
+								$_SESSION['lastAskedOriginsToChooseFrom'],
+								$_SESSION['askedQuotesIDs'],
 								AMOUNT_QUOTES_IN_SET);
 								
 								
@@ -108,11 +95,12 @@ function getRandomQuote() {
 	/*------------------------------------------------------------------------------------*/	
 	else{
 	
-		$askedQuotesIDs = $_SESSION['asked_quotes_IDs'];
+		$askedQuotesIDs = $_SESSION['askedQuotesIDs'];
 
 		/* if set of quotes questions has ended - exit with info message */
-		if(count($askedQuotesIDs) == AMOUNT_QUOTES_IN_SET){					
-			sendInfo(INFO_CODE_SET_ENDED);			
+		if(count($askedQuotesIDs) >= AMOUNT_QUOTES_IN_SET){					
+		
+			sendUserResult();
 			exit();
 		}
 		
@@ -142,9 +130,14 @@ function getRandomQuote() {
 			sendError(ERROR_CODE_SQL_PROCESSING, $e->getMessage());			
 			exit();
 		}
-	}	
-		
+	}		
 	
+	if($quoteQuestion == FALSE){
+		sendError(ERROR_CODE_NO_MORE_UNIQUE_QUOTES);
+		exit()		;
+	}
+	
+			
 	/* select origins by provided type as answer options */
 	$sql = "
 			SELECT origin_text
@@ -193,7 +186,7 @@ function getRandomQuote() {
 	}
 	shuffle($originsToChooseFrom);
 	
-	$askedQuoteIDs = $_SESSION['asked_quotes_IDs'];
+	$askedQuoteIDs = $_SESSION['askedQuotesIDs'];
 	$askedQuoteIDs[] = $quoteQuestion->id;	
 		
 	/* send data */	
@@ -211,9 +204,9 @@ function sendQuestionAndAnswers($quoteText,
 	$db = null;
 								
 	/*storing history of user answers in session*/
-	$_SESSION['last_asked_quote_text'] = $quoteText;		
-	$_SESSION['last_asked_origins_to_choose_from'] = $originsToChooseFrom;		
-	$_SESSION['asked_quotes_IDs'] = $askedQuotesIDs;
+	$_SESSION['lastAskedQuoteText'] = $quoteText;		
+	$_SESSION['lastAskedOriginsToChooseFrom'] = $originsToChooseFrom;		
+	$_SESSION['askedQuotesIDs'] = $askedQuotesIDs;
 	
 	$json_data = array ('quote'=>$quoteText,
 						'origins'=>$originsToChooseFrom,
@@ -235,7 +228,7 @@ function verifyAnswer() {
 	$quoteText = $request->get("quote_text"); 
 	$answeredOriginText =  $request->get("origin_text");
 
-	$_SESSION['last_answered_quote_text'] = $quoteText;
+	$_SESSION['lastAnsweredQuoteText'] = $quoteText;
 	
 	/* select all possible origins that have provided quote*/	
 	$sql = "
@@ -269,6 +262,14 @@ function verifyAnswer() {
 	}
 	else{
 		$isUserAnswerCorrect = in_array($answeredOriginText, $correctOrigins);
+		if(!isset($_SESSION['amountCorrectAnsweres'])){
+			$_SESSION['amountCorrectAnsweres'] = 0;
+		}
+		
+		if($isUserAnswerCorrect){
+			$_SESSION['amountCorrectAnsweres'] = $_SESSION['amountCorrectAnsweres'] + 1;
+		}
+		
 		if(SEND_CORRECT_ANSWER){			
 			echo json_encode(array('isUserAnswerCorrect'=>$isUserAnswerCorrect, 'allCorrectAnswers'=>$correctOrigins));
 		}
@@ -281,22 +282,32 @@ function verifyAnswer() {
 }
 
 function resetUserStats() {
-	unset($_SESSION['last_asked_quote_text']);
-	unset($_SESSION['last_answered_quote_text']);
-	unset($_SESSION['last_asked_origins_to_choose_from']);
-	unset($_SESSION['asked_quotes_IDs']);	
+	unset($_SESSION['lastAskedQuoteText']);
+	unset($_SESSION['lastAnsweredQuoteText']);
+	unset($_SESSION['lastAskedOriginsToChooseFrom']);
+	unset($_SESSION['askedQuotesIDs']);	
+	unset($_SESSION['amountCorrectAnsweres']);	
 }
 
-function sendInfo($infoCode){
+function sendUserResult(){
+	sendResult(INFO_CODE_SET_ENDED, buildResult());			
+}
+
+function sendResult($resultCode, $resultData){
 	$db = null;	
-	$json_data = array ('infoCode'=>$infoCode);
+	$json_data = array ('result'=>$resultCode, 'resultData'=>$resultData);
 	echo json_encode($json_data);	
 }
 
-function sendError($errorCode, $errorMessage){
+function sendError($errorCode, $errorData = null){
 	$db = null;	
-	$json_data = array ('errorCode'=>$errorCode, 'errorMessage'=>$errorMessage);
+	$json_data = array ('error'=>$errorCode, 'errorData'=>$errorData);
 	echo json_encode($json_data);	
+}
+
+function buildResult(){
+	return array('amountQuestionsAsked'=>count($_SESSION['askedQuotesIDs']),
+				'amountCorrectAnsweres'=>$_SESSION['amountCorrectAnsweres']);
 }
 
 

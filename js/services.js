@@ -13,4 +13,7 @@ angular.module('quotesClientServices', ['ngResource']).
 	}).
 	factory('ResetUserStatsService', function($resource){
 		return $resource('api/resetUserStats', {}, {});
+	}).
+	factory('UserResultService', function($resource){
+		return $resource('api/userResult', {}, {});
 	});

@@ -11,19 +11,31 @@ function isNullOrUndefined(a) {
 /* Controllers */
 
 function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOriginsService, VerifyAnswerService) {
+	$scope.testLabel = function(quotesAsked, quotesInSet) {
+			if(quotesAsked == quotesInSet) {
+				return "Result"
+			}
+			else {
+				return "Next";
+			}
+		};
+		
 	$scope.getRandomQuote = function () {
 		$scope.answerVerificationReceived = false;
+		$scope.isCommunicatingWithServer = true;
 		$scope.allCorrectAnswers = null;
 		QuoteAndOriginsService.getRandomQuote(
 			{},
 			function (response) {
-				if (response.hasOwnProperty('infoCode')) {
-					$scope.handleInfo(response['infoCode']);
+				$scope.isCommunicatingWithServer = false;
+			
+				if (response.hasOwnProperty('result')) {
+					$location.path("/result/");
 					return;
 				}
 				
-				if (response.hasOwnProperty('errorCode')) {
-					$scope.handleError(response['errorCode']);
+				if (response.hasOwnProperty('error')) {
+					$location.path("/error/" + response.error);
 					return;
 				}
 			
@@ -61,14 +73,6 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOrig
 		return 'btn btn-large btn-block';
 	};
 	
-	$scope.handleInfo = function (infoCode) {
-		$location.path("/info/" + infoCode);
-	}
-	
-	$scope.handleError = function (errorCode) {
-		$location.path("/error/" + errorCode);
-	}
-
 	$scope.getRandomQuote();
 }
 
@@ -82,6 +86,9 @@ function ErrorController($scope, $routeParams, $location, ResetUserStatsService)
 		break;
 	case "1":
 		$scope.errorText = "Unable to find correct answer for this question in database";
+		break;
+	case "2":
+		$scope.errorText = "No more questions in DB";
 		break;
 	default:
 		$scope.errorText = "Unknown error code";
@@ -100,20 +107,7 @@ function ErrorController($scope, $routeParams, $location, ResetUserStatsService)
 
 //ErrorController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService'];
 
-function InfoController($scope, $routeParams, $location, ResetUserStatsService) {
-	var infoCode = $routeParams.infoCode;
-	switch (infoCode) {
-	case "0":
-		$scope.infoText = "You have answered all questions in set, you may now restart";
-		break;
-	case "1":
-		$scope.infoText = "No more unique questions to ask";
-		break;
-	default:
-		$scope.infoText = "Unknow info code";
-		break;
-	}
-	
+function ResultController($scope, $routeParams, $location, ResetUserStatsService, UserResultService) {
 	$scope.reset = function () {
 		ResetUserStatsService.get(
 			{},
@@ -122,6 +116,24 @@ function InfoController($scope, $routeParams, $location, ResetUserStatsService) 
 			}
 		)
 	}
+	
+	$scope.getUserResult = function () {
+		UserResultService.get(
+			{},
+			function (response) {
+				if(!response || !response.resultData){
+					return;
+				}		
+				
+				$scope.amountQuestionsAsked = response.resultData.amountQuestionsAsked;
+				$scope.amountCorrectAnsweres = response.resultData.amountCorrectAnsweres;
+				
+				$scope.resultRatio = 100 * $scope.amountCorrectAnsweres / $scope.amountQuestionsAsked;
+			}
+		);
+	};
+
+	$scope.getUserResult();
 }
 
-//InfoController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService'];
+//ResultController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'UserResultService'];

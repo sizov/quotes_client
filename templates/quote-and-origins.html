@@ -1,30 +1,36 @@
-<div class="container-fluid">
+<div class="container">
 	
-	<div class="row-fluid">	  
-		<legend><h1>{{quote}}</h1></legend>
-		<div class="span6 offset3 well">	  
+	<div class="row">	  
+		<h1>{{quote}}</h1>
+		<hr>
+	</div>
+	
+	<div class="row">	  		
+		<div class="span6 offset3">	
 			<ul class="unstyled">			
 				<li ng-repeat="origin in origins">				
 					<button
 						ng-class="getOriginButtonClass(origin, allCorrectAnswers)"
 						ng-click="originClickHandler(quote, origin)"
-						ng-disabled="answerVerificationReceived"
+						ng-disabled="answerVerificationReceived || isCommunicatingWithServer"
 						type="button">
 							{{origin}}
 					</button>
 				</li>
-			</ul>
-			<div>
-				<span>{{quotesAsked}} / {{quotesInSet}}</span>
-				<button				
-					class="btn btn-inverse pull-right"
-					type="button"
-					ng-show="answerVerificationReceived"
-					ng-click="nextClickHandler()">
-						>>
-				</button>
-			<div>
+			</ul>			
 		</div>		
+	</div>
+	
+	<div class="row">
+		<div class="span6 offset3">			
+			<span>{{quotesAsked}} / {{quotesInSet}}</span>			
+			<button				
+				ng-show="answerVerificationReceived"
+				class="btn btn-inverse pull-right"
+				type="button"ng-click="nextClickHandler()">
+					{{testLabel(quotesAsked, quotesInSet)}}
+			</button>			
+		</div>
 	</div>
 
 </div>
