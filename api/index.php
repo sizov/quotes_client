@@ -29,7 +29,8 @@ $app->run();
 
 function getRandomQuote() {
 	$request = Slim::getInstance()->request();
-	$origin_type_id = $request->get('origin_type_id');
+	$originTypeId = $request->get('origin_type_id');
+	$languageId = $request->get('language_id');
 	
 	/*if user requested reset*/
 	if(isset($_GET['restart']) && $_GET["restart"] === "1"){
@@ -51,6 +52,7 @@ function getRandomQuote() {
 									SELECT id
 									FROM quote_origins
 									WHERE type_id=:origin_type_id
+									AND language_id=:language_id
 									)
 				ORDER BY rand()
 				LIMIT 1
@@ -60,7 +62,8 @@ function getRandomQuote() {
 		try {
 			$db = getConnection();
 			$stmt = $db->prepare($sql);  
-			$stmt->bindParam("origin_type_id", $origin_type_id);
+			$stmt->bindParam("origin_type_id", $originTypeId);
+			$stmt->bindParam("language_id", $languageId);
 			$stmt->execute();
 			$quoteQuestion = $stmt->fetchObject();		
 		} catch(PDOException $e) {
@@ -82,8 +85,7 @@ function getRandomQuote() {
 		sendQuestionAndAnswers(	$_SESSION['lastAskedQuoteText'],
 								$_SESSION['lastAskedOriginsToChooseFrom'],
 								$_SESSION['askedQuotesIDs'],
-								AMOUNT_QUOTES_IN_SET);
-								
+								AMOUNT_QUOTES_IN_SET);								
 								
 		exit();
 	}
@@ -114,6 +116,7 @@ function getRandomQuote() {
 									SELECT id
 									FROM quote_origins
 									WHERE type_id=:origin_type_id
+									AND language_id=:language_id
 								)
 				ORDER BY rand()
 				LIMIT 1
@@ -123,7 +126,8 @@ function getRandomQuote() {
 		try {
 			$db = getConnection();
 			$stmt = $db->prepare($sql);  
-			$stmt->bindParam("origin_type_id", $origin_type_id);
+			$stmt->bindParam("origin_type_id", $originTypeId);
+			$stmt->bindParam("language_id", $languageId);
 			$stmt->execute();
 			$quoteQuestion = $stmt->fetchObject();		
 		} catch(PDOException $e) {
@@ -143,13 +147,15 @@ function getRandomQuote() {
 			SELECT origin_text
 			FROM quote_origins
 			WHERE type_id=:origin_type_id
+			AND language_id=:language_id
 			ORDER BY rand()
 			LIMIT ".AMOUNT_ORIGINS_TO_CHOOSE."
 			";							
 	try {
 		$db = getConnection();
 		$stmt = $db->prepare($sql);  
-		$stmt->bindParam("origin_type_id", $origin_type_id);
+		$stmt->bindParam("origin_type_id", $originTypeId);
+		$stmt->bindParam("language_id", $languageId);
 		$stmt->execute();
 		$originsToChooseFrom = $stmt->fetchAll(PDO::FETCH_OBJ);
 		/*leaving only origin_text in elements, not objects*/

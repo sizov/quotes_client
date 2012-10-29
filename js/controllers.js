@@ -10,7 +10,7 @@ function isNullOrUndefined(a) {
 
 /* Controllers */
 
-function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOriginsService, VerifyAnswerService) {
+function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOriginsService, VerifyAnswerService, SettingsService) {
 	$scope.testLabel = function(quotesAsked, quotesInSet) {
 			if(quotesAsked == quotesInSet) {
 				return "Result"
@@ -76,7 +76,7 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOrig
 	$scope.getRandomQuote();
 }
 
-//QuoteAndOriginsController.$inject = ['$scope', '$routeParams', '$location' , 'QuoteAndOriginsService', 'VerifyAnswerService'];
+//QuoteAndOriginsController.$inject = ['$scope', '$routeParams', '$location' , 'QuoteAndOriginsService', 'VerifyAnswerService', 'SettingsService'];
 
 function ErrorController($scope, $routeParams, $location, ResetUserStatsService) {
 	var errorCode = $routeParams.errorCode;
@@ -137,3 +137,29 @@ function ResultController($scope, $routeParams, $location, ResetUserStatsService
 }
 
 //ResultController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'UserResultService'];
+
+function SettingsController($scope, $routeParams, $location, ResetUserStatsService, SettingsService) {		
+	$scope.$watch(
+		'questionsType',
+		function(newValue, oldValue) {
+			if (newValue === oldValue) return;
+			SettingsService.setSelectedQuestionsType(newValue);
+		}
+	);
+	
+	$scope.$watch(
+		'questionsLanguage',
+		function(newValue, oldValue) {
+			if (newValue === oldValue) return;
+			SettingsService.setSelectedQuestionsLanguage(newValue);
+		}
+	);
+
+	$scope.allQuestionsLanguage = SettingsService.getAllQuestionsLanguage();
+	$scope.allQuestionsType = SettingsService.getAllQuestionsType();
+
+	$scope.questionsType = SettingsService.getSelectedQuestionsType();
+	$scope.questionsLanguage = SettingsService.getSelectedQuestionsLanguage();	
+}
+
+//SettingsController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'SettingsService'];
