@@ -10,9 +10,9 @@ function isNullOrUndefined(a) {
 
 /* Controllers */
 
-function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOriginsService, VerifyAnswerService, SettingsService) {
-	$scope.testLabel = function(quotesAsked, quotesInSet) {
-			if(quotesAsked == quotesInSet) {
+function QuoteAndOriginsController($scope, $routeParams, $location, QuestionsAndAnswersService, VerifyAnswerService, SettingsService) {
+	$scope.getNextButtonLabel = function(amountQuestionsAsked, amountQuestionsInSet) {
+			if(amountQuestionsAsked == amountQuestionsInSet) {
 				return "Result"
 			}
 			else {
@@ -20,12 +20,16 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOrig
 			}
 		};
 		
-	$scope.getRandomQuote = function () {
+	$scope.getRandomQuestion = function () {
 		$scope.answerVerificationReceived = false;
 		$scope.isCommunicatingWithServer = true;
 		$scope.allCorrectAnswers = null;
-		QuoteAndOriginsService.getRandomQuote(
-			{},
+		
+		QuestionsAndAnswersService.get(
+			{
+				type_id:SettingsService.getSelectedQuestionsType().key,
+				language_id:SettingsService.getSelectedQuestionsLanguage().key
+			},
 			function (response) {
 				$scope.isCommunicatingWithServer = false;
 			
@@ -39,17 +43,18 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOrig
 					return;
 				}
 			
-				$scope.quote = response.quote;
-				$scope.origins = response.origins;
-				$scope.quotesAsked = response.quotesAsked;
-				$scope.quotesInSet = response.quotesInSet;
+				$scope.question = response.question;
+				$scope.answers = response.answers;
+				$scope.amountQuestionsAsked = response.amountQuestionsAsked;
+				$scope.amountQuestionsInSet = response.amountQuestionsInSet;
 			}
 		);
 	};
 
-	$scope.originClickHandler = function (quote, origin) {
+	$scope.answerClickHandler = function (question, answer) {
+		$scope.isCommunicatingWithServer = true;
 		VerifyAnswerService.get(
-			{quote_text: quote, origin_text: origin},
+			{question_text: question, answer_text: answer},
 			function (answer) {
 				$scope.answerVerificationReceived = true;
 				$scope.allCorrectAnswers = answer.allCorrectAnswers;
@@ -58,10 +63,10 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOrig
 	};
 
 	$scope.nextClickHandler = function () {
-		$scope.getRandomQuote();
+		$scope.getRandomQuestion();
 	};
 
-	$scope.getOriginButtonClass = function (origin, allCorrectAnswers) {
+	$scope.getAnswerButtonClass = function (origin, allCorrectAnswers) {
 		if (isNullOrUndefined(allCorrectAnswers) || allCorrectAnswers.length === 0) {
 			return 'btn btn-large btn-block';
 		}
@@ -73,26 +78,26 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuoteAndOrig
 		return 'btn btn-large btn-block';
 	};
 	
-	$scope.getRandomQuote();
+	$scope.getRandomQuestion();
 }
 
-//QuoteAndOriginsController.$inject = ['$scope', '$routeParams', '$location' , 'QuoteAndOriginsService', 'VerifyAnswerService', 'SettingsService'];
+//QuoteAndOriginsController.$inject = ['$scope', '$routeParams', '$location' , 'QuestionsAndAnswersService', 'VerifyAnswerService', 'SettingsService'];
 
 function ErrorController($scope, $routeParams, $location, ResetUserStatsService) {
 	var errorCode = $routeParams.errorCode;
 	switch (errorCode) {
-	case "0":
-		$scope.errorText = "Error in database processing";
-		break;
-	case "1":
-		$scope.errorText = "Unable to find correct answer for this question in database";
-		break;
-	case "2":
-		$scope.errorText = "No more questions in DB";
-		break;
-	default:
-		$scope.errorText = "Unknown error code";
-		break;
+		case "0":
+			$scope.errorText = "Error in database processing";
+			break;
+		case "1":
+			$scope.errorText = "Unable to find correct answer for this question in database";
+			break;
+		case "2":
+			$scope.errorText = "No more questions in DB";
+			break;
+		default:
+			$scope.errorText = "Unknown error code";
+			break;
 	};
 	
 	$scope.reset = function () {
@@ -139,6 +144,7 @@ function ResultController($scope, $routeParams, $location, ResetUserStatsService
 //ResultController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'UserResultService'];
 
 function SettingsController($scope, $routeParams, $location, ResetUserStatsService, SettingsService) {		
+//TODO: Think how to reuse functionality here and in intro
 	$scope.$watch(
 		'questionsType',
 		function(newValue, oldValue) {
@@ -163,3 +169,77 @@ function SettingsController($scope, $routeParams, $location, ResetUserStatsServi
 }
 
 //SettingsController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'SettingsService'];
+
+function IntroController($scope, $routeParams, $location, ResetUserStatsService, SettingsService, UserStatusService) {
+	//we are gettomg user current status
+	/*	("USER_STATUS_NO_QUESTIONS_ASKED", 0);
+		("USER_STATUS_DIDNT_ANSWER_LAST_QUESTION", 1);
+		("USER_STATUS_ANSWERED_ALL_QUESTIONS", 2);
+		("USER_STATUS_ANSWERED_LAST_QUESTION_NEEDS_MORE", 3);*/
+	UserStatusService.get(
+		{},
+		function (answer){
+			$scope.userStatus = answer.userStatus;
+			switch (answer.userStatus){
+				case 0:
+					break;
+				case 1:
+					break;
+				case 2:
+					break;
+				case 3:
+					break;
+				default:
+			}
+		}
+	)
+	
+	$scope.continueAnswering = function () {
+		$location.path("/game");
+	}
+	
+	$scope.showResults = function () {
+		$location.path("/result/");
+	}
+
+	$scope.reset = function () {
+		ResetUserStatsService.get(
+			{},
+			function (){
+				$location.path("/game");
+			}
+		)
+	}
+	
+	$scope.start = function () {
+		$location.path("/game");
+	}
+
+/*-----------------------------------------------------------*/	
+//TODO: This is repeated code that is used in intro controller
+/*-----------------------------------------------------------*/
+	
+	$scope.$watch(
+		'questionsType',
+		function(newValue, oldValue) {
+			if (newValue === oldValue) return;
+			SettingsService.setSelectedQuestionsType(newValue);
+		}
+	);
+	
+	$scope.$watch(
+		'questionsLanguage',
+		function(newValue, oldValue) {
+			if (newValue === oldValue) return;
+			SettingsService.setSelectedQuestionsLanguage(newValue);
+		}
+	);	
+
+	$scope.allQuestionsLanguage = SettingsService.getAllQuestionsLanguage();
+	$scope.allQuestionsType = SettingsService.getAllQuestionsType();
+
+	$scope.questionsType = SettingsService.getSelectedQuestionsType();
+	$scope.questionsLanguage = SettingsService.getSelectedQuestionsLanguage();	
+}
+
+//IntroController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'SettingsService', 'UserStatusService'];

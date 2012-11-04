@@ -1,0 +1,59 @@
+<div class="container">
+	
+		<div class="row">
+			<div class="span12">
+				<h2>Welcome to Quotes game!</h2>
+				<legend></legend>
+			</div>		
+		</div>
+		
+		<div class="row">
+			<div class="span4 offset4">
+				<label>Type of questions: </label>
+				<select class="span4" ng-model="questionsType" ng-options="element.value for element in allQuestionsType"></select>
+			</div>
+		</div>
+		
+		<div class="row">
+			<div class="span4 offset4">
+				<label>Language of questions: </label>
+				<select class="span4"  ng-model="questionsLanguage" ng-options="element.value for element in allQuestionsLanguage"></select>
+			</div>
+		</div>
+			
+		<div class="row"  ng-show="userStatus == 1 || userStatus == 3">
+			<button				
+				class="btn span2 offset4"
+				type="button"
+				ng-click="reset()">
+				Restart	
+			</button>				
+			
+			<button				
+				class="btn btn-primary span2"
+				type="button"
+				ng-click="continueAnswering()">
+				Continue	
+			</button>	
+		</div>
+		
+		<div class="row"  ng-show="userStatus == 2">
+			<button				
+				class="btn span2 offset5"
+				type="button"
+				ng-click="showResults()">
+				Results
+			</button>				
+		</div>
+			
+			
+		<div class="row" ng-show="userStatus == 0">
+			<button				
+				class="btn btn-large btn-success span4 offset4"
+				type="button"
+				ng-click="start()">
+				Start	
+			</button>				
+		</div>
+
+</div>

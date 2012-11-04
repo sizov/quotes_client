@@ -4,8 +4,9 @@
 
 angular.module('quotesClient', ['quotesClientServices']).
 	config(['$routeProvider', function($routeProvider) {
-		$routeProvider.
-			when('/', {templateUrl: 'templates/quote-and-origins.html',   controller: QuoteAndOriginsController}).
+		$routeProvider.			
+			when('/', {templateUrl: 'templates/intro.html',   controller: IntroController}).
+			when('/game', {templateUrl: 'templates/quote-and-origins.html',   controller: QuoteAndOriginsController}).
 			when('/error/:errorCode', {templateUrl: 'templates/error.html',   controller: ErrorController}).
 			when('/result/', {templateUrl: 'templates/result.html',   controller: ResultController}).
 			when('/settings/', {templateUrl: 'templates/settings.html',   controller: SettingsController}).

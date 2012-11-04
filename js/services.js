@@ -3,16 +3,17 @@
 /* Services */
 
 angular.module('quotesClientServices', ['ngResource']).
-    factory('QuoteAndOriginsService', function($resource){
-		return $resource('api/getRandomQuote', {}, {
-			getRandomQuote: {method:'GET', params:{origin_type_id:'1', language_id:'1'}}
-		});
+    factory('QuestionsAndAnswersService', function($resource){
+		return $resource('api/getRandomQuote', {}, {});
 	}).
     factory('VerifyAnswerService', function($resource){
 		return $resource('api/verifyAnswer', {}, {});
 	}).
 	factory('ResetUserStatsService', function($resource){
 		return $resource('api/resetUserStats', {}, {});
+	}).
+	factory('UserStatusService', function($resource){
+		return $resource('api/getUserStatus', {}, {});
 	}).
 	factory('UserResultService', function($resource){
 		return $resource('api/userResult', {}, {});

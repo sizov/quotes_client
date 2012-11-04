@@ -1,20 +1,20 @@
 <div class="container">
 	
 	<div class="row">	  
-		<h1>{{quote}}</h1>
+		<h1>{{question}}</h1>
 		<hr>
 	</div>
 	
 	<div class="row">	  		
 		<div class="span6 offset3">	
 			<ul class="unstyled">			
-				<li ng-repeat="origin in origins">				
+				<li ng-repeat="answer in answers">				
 					<button
-						ng-class="getOriginButtonClass(origin, allCorrectAnswers)"
-						ng-click="originClickHandler(quote, origin)"
+						ng-class="getAnswerButtonClass(answer, allCorrectAnswers)"
+						ng-click="answerClickHandler(question, answer)"
 						ng-disabled="answerVerificationReceived || isCommunicatingWithServer"
 						type="button">
-							{{origin}}
+							{{answer}}
 					</button>
 				</li>
 			</ul>			
@@ -23,12 +23,12 @@
 	
 	<div class="row">
 		<div class="span6 offset3">			
-			<span>{{quotesAsked}} / {{quotesInSet}}</span>			
+			<span>{{amountQuestionsAsked}} / {{amountQuestionsInSet}}</span>			
 			<button				
 				ng-show="answerVerificationReceived"
 				class="btn btn-inverse pull-right"
 				type="button"ng-click="nextClickHandler()">
-					{{testLabel(quotesAsked, quotesInSet)}}
+					{{getNextButtonLabel(questionsAsked, amountQuestionsInSet)}}
 			</button>			
 		</div>
 	</div>
