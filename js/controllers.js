@@ -1,13 +1,5 @@
 'use strict';
 
-function isNullOrUndefined(a) {
-	var rc = false;
-	if (a === null || typeof (a) === "undefined") {
-		rc = true;
-	}
-	return rc;
-}
-
 /* Controllers */
 
 function QuoteAndOriginsController($scope, $routeParams, $location, QuestionsAndAnswersService, VerifyAnswerService, SettingsService) {
@@ -67,7 +59,7 @@ function QuoteAndOriginsController($scope, $routeParams, $location, QuestionsAnd
 	};
 
 	$scope.getAnswerButtonClass = function (origin, allCorrectAnswers) {
-		if (isNullOrUndefined(allCorrectAnswers) || allCorrectAnswers.length === 0) {
+		if (allCorrectAnswers === null || typeof (allCorrectAnswers) === "undefined" || allCorrectAnswers.length === 0) {
 			return 'btn btn-large btn-block';
 		}
 
@@ -143,84 +135,55 @@ function ResultController($scope, $routeParams, $location, ResetUserStatsService
 
 //ResultController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'UserResultService'];
 
-function SettingsController($scope, $routeParams, $location, ResetUserStatsService, SettingsService) {		
-//TODO: Think how to reuse functionality here and in intro
-	$scope.$watch(
-		'questionsType',
-		function(newValue, oldValue) {
-			if (newValue === oldValue) return;
-			SettingsService.setSelectedQuestionsType(newValue);
-		}
-	);
-	
-	$scope.$watch(
-		'questionsLanguage',
-		function(newValue, oldValue) {
-			if (newValue === oldValue) return;
-			SettingsService.setSelectedQuestionsLanguage(newValue);
-		}
-	);
-
-	$scope.allQuestionsLanguage = SettingsService.getAllQuestionsLanguage();
-	$scope.allQuestionsType = SettingsService.getAllQuestionsType();
-
-	$scope.questionsType = SettingsService.getSelectedQuestionsType();
-	$scope.questionsLanguage = SettingsService.getSelectedQuestionsLanguage();	
-}
-
-//SettingsController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'SettingsService'];
-
 function IntroController($scope, $routeParams, $location, ResetUserStatsService, SettingsService, UserStatusService) {
-	//we are gettomg user current status
-	/*	("USER_STATUS_NO_QUESTIONS_ASKED", 0);
-		("USER_STATUS_DIDNT_ANSWER_LAST_QUESTION", 1);
-		("USER_STATUS_ANSWERED_ALL_QUESTIONS", 2);
-		("USER_STATUS_ANSWERED_LAST_QUESTION_NEEDS_MORE", 3);*/
-	UserStatusService.get(
-		{},
-		function (answer){
-			$scope.userStatus = answer.userStatus;
-			switch (answer.userStatus){
-				case 0:
-					break;
-				case 1:
-					break;
-				case 2:
-					break;
-				case 3:
-					break;
-				default:
+	/*we are gettomg user current status*/
+	$scope.getCurrentStatus = function (){
+		UserStatusService.get(
+			{},
+			function (answer){
+				$scope.userStatus = answer.userStatus;
+				switch (answer.userStatus){
+					case 0:
+						$scope.infoText = "Please choose settings for game and press start";
+						break;
+					case 1:
+						$scope.infoText = "You have not finished previous game. You may now continue playing or start new one";
+						break;
+					case 2:
+						$scope.infoText = "You have answered all questions in set. You may now see your results or start new game";
+						break;
+					case 3:
+						$scope.infoText = "You have not finished your previous game. You may now continue playing or start new one";
+						break;
+					default:
+				}
 			}
-		}
-	)
+		)
+	}
 	
 	$scope.continueAnswering = function () {
-		$location.path("/game");
+		$location.path("game");
 	}
 	
 	$scope.showResults = function () {
-		$location.path("/result/");
+		$location.path("result");
 	}
 
 	$scope.reset = function () {
 		ResetUserStatsService.get(
 			{},
 			function (){
-				$location.path("/game");
+				$scope.getCurrentStatus();
 			}
 		)
 	}
 	
 	$scope.start = function () {
-		$location.path("/game");
+		$location.path("game");
 	}
 
-/*-----------------------------------------------------------*/	
-//TODO: This is repeated code that is used in intro controller
-/*-----------------------------------------------------------*/
-	
 	$scope.$watch(
-		'questionsType',
+		'selectedQuestionsType',
 		function(newValue, oldValue) {
 			if (newValue === oldValue) return;
 			SettingsService.setSelectedQuestionsType(newValue);
@@ -228,18 +191,38 @@ function IntroController($scope, $routeParams, $location, ResetUserStatsService,
 	);
 	
 	$scope.$watch(
-		'questionsLanguage',
+		'selectedQuestionsLanguage',
 		function(newValue, oldValue) {
 			if (newValue === oldValue) return;
 			SettingsService.setSelectedQuestionsLanguage(newValue);
 		}
 	);	
+	
+	/*gets reference to object from array for which all properties are same as targetObejct*/
+	function getSameObjectFromArray(targetObject, array) {
+		for (var i=0; i < array.length; i++) {
+			var objectFromArray = array[i];
+			
+			//TODO: this is BAD solution for comparing objects. Cretae your utility base on StackOverFlow answers
+			//+read article about best practices to create UTILS: http://frugalcoder.us/post/2010/02/11/js-classes.aspx
+			//OR use underscore
+			if(JSON.stringify(objectFromArray) === JSON.stringify(targetObject)){
+				return objectFromArray;
+			}
+		}
+		return null;
+	}
 
 	$scope.allQuestionsLanguage = SettingsService.getAllQuestionsLanguage();
-	$scope.allQuestionsType = SettingsService.getAllQuestionsType();
+	//we are retrieving potentially from localstorage and onject might have same contant as in collection,
+	//but it should be actually same object reference for dropdown selection to auto-bind
+	var tempSelectedQuestionsLanguage = SettingsService.getSelectedQuestionsLanguage();
+	$scope.selectedQuestionsLanguage = getSameObjectFromArray(tempSelectedQuestionsLanguage, $scope.allQuestionsLanguage);
 
-	$scope.questionsType = SettingsService.getSelectedQuestionsType();
-	$scope.questionsLanguage = SettingsService.getSelectedQuestionsLanguage();	
+	$scope.allQuestionsType = SettingsService.getAllQuestionsType();
+	$scope.selectedQuestionsType = getSameObjectFromArray(SettingsService.getSelectedQuestionsType(), $scope.allQuestionsType);
+	
+	$scope.getCurrentStatus();
 }
 
 //IntroController.$inject = ['$scope', '$routeParams', '$location', 'ResetUserStatsService', 'SettingsService', 'UserStatusService'];

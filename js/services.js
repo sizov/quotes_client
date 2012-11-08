@@ -18,54 +18,91 @@ angular.module('quotesClientServices', ['ngResource']).
 	factory('UserResultService', function($resource){
 		return $resource('api/userResult', {}, {});
 	}).
-	factory('SettingsService', function($resource){
-		var settings = {};
-		
-		var englishQuestionsLanguage = {key: 0, value: "English"};
-		var russianQuestionsLanguage = {key: 1, value: "Russian"};
-		
-		var moviesQuestionsType = {key: 0, value: "Movies"};
-		var famousPeopleQuestionsType = {key: 1, value: "Famous People"};
-		
-		settings.allQuestionsLanguage = [englishQuestionsLanguage, russianQuestionsLanguage];
-		settings.allQuestionsType = [moviesQuestionsType, famousPeopleQuestionsType];
-		
-		settings.selectedQuestionsLanguage = englishQuestionsLanguage;
-		settings.selectedQuestionsType = moviesQuestionsType;
+	factory('SettingsService', function($resource){		
+		var settingsService = {}; //service itself
 	
-		var settingsService = {};
+		var mockStorage; //used to store settings if local storage is not supported		
+		var supportsLocalStorage = Modernizr.localstorage;
 		
+		//if localstorage does not exist or default values were not set - set them
+		if (!localStorageHas('selectedQuestionsLanguage') ||
+			!localStorageHas('allQuestionsLanguage') ||
+			!localStorageHas('selectedQuestionsType') ||
+			!localStorageHas('allQuestionsType')){
+			
+			setDefaultData();
+		}
+
+		/*getters for collections*/		
 		settingsService.getAllQuestionsLanguage = function () {
-			return settings.allQuestionsLanguage;
+			return loadFromStorage('allQuestionsLanguage');
 		}
 		
 		settingsService.getAllQuestionsType = function () {
-			return settings.allQuestionsType;
+			return loadFromStorage('allQuestionsType');
 		}
 		
-		/*================================*/
-		/*SelectedQuestionsType*/
-		/*================================*/
-		
+		/*get/set SelectedQuestionsType*/	
 		settingsService.getSelectedQuestionsType = function () {
-			return settings.selectedQuestionsType;
+			return loadFromStorage('selectedQuestionsType');
 		}
 		
 		settingsService.setSelectedQuestionsType = function (value) {
-			settings.selectedQuestionsType = value;
+			saveToStorage('selectedQuestionsType', value);
 		}
 		
-		/*================================*/
-		/*SelectedQuestionsLanguage*/
-		/*================================*/
-		
+		/*get/set SelectedQuestionsLanguage*/		
 		settingsService.getSelectedQuestionsLanguage = function () {
-			return settings.selectedQuestionsLanguage;
+			return loadFromStorage('selectedQuestionsLanguage');
 		}
 		
 		settingsService.setSelectedQuestionsLanguage = function (value) {
-			settings.selectedQuestionsLanguage = value;
+			saveToStorage('selectedQuestionsLanguage', value);
 		}
 		
+		/*======================================================================*/
+		/*PRIVATE: Function that creates default values for settings*/
+		/*======================================================================*/
+		function setDefaultData () {
+			var englishQuestionsLanguage = {key: 0, value: "English"};
+			var russianQuestionsLanguage = {key: 1, value: "Russian"};
+			saveToStorage('selectedQuestionsLanguage', englishQuestionsLanguage);
+			saveToStorage('allQuestionsLanguage', [englishQuestionsLanguage, russianQuestionsLanguage]);
+			
+			var moviesQuestionsType = {key: 0, value: "Movies"};
+			var famousPeopleQuestionsType = {key: 1, value: "Famous People"};
+			saveToStorage('selectedQuestionsType', moviesQuestionsType);
+			saveToStorage('allQuestionsType', [moviesQuestionsType, famousPeopleQuestionsType]);
+		}		
+		
+		/*======================================================================*/
+		/*PRIVATE: Utils function to save/read form local storage or mock object*/
+		/*======================================================================*/
+		function saveToStorage(key, value) {
+			if (supportsLocalStorage){
+				localStorage.setItem(key, JSON.stringify(value));
+				return value;
+			}
+			
+			mockStorage[key] = value;
+			return value;
+		}
+		
+		function loadFromStorage(key) {
+			var result;
+			if (supportsLocalStorage){
+				result = localStorage.getItem(key);
+				return JSON.parse(result);
+			}
+			
+			return mockStorage[key];
+		}
+		
+		function localStorageHas(key) {
+			if (!supportsLocalStorage) return false;
+			if (localStorage.getItem(key) === null) return false;
+			return true;
+		}
+
 		return settingsService;
 	});

@@ -3,43 +3,46 @@
 		<div class="row">
 			<div class="span12">
 				<h2>Welcome to Quotes game!</h2>
-				<legend></legend>
+				<hr>
+				<p>{{infoText}}</p>
 			</div>		
-		</div>
+		</div>		
 		
-		<div class="row">
-			<div class="span4 offset4">
+		<div class="row" ng-show="userStatus == 0">
+			<div class="span4">
 				<label>Type of questions: </label>
-				<select class="span4" ng-model="questionsType" ng-options="element.value for element in allQuestionsType"></select>
+				<select class="span4" ng-model="selectedQuestionsType" ng-options="element.value for element in allQuestionsType"></select>
 			</div>
 		</div>
 		
-		<div class="row">
-			<div class="span4 offset4">
+		<div class="row" ng-show="userStatus == 0">
+			<div class="span4">
 				<label>Language of questions: </label>
-				<select class="span4"  ng-model="questionsLanguage" ng-options="element.value for element in allQuestionsLanguage"></select>
+				<select class="span4"  ng-model="selectedQuestionsLanguage" ng-options="element.value for element in allQuestionsLanguage"></select>
 			</div>
 		</div>
 			
-		<div class="row"  ng-show="userStatus == 1 || userStatus == 3">
+		<div class="row"  ng-show="userStatus == 1 || userStatus == 2 || userStatus == 3">
 			<button				
-				class="btn span2 offset4"
+				class="btn span2"
 				type="button"
 				ng-click="reset()">
-				Restart	
+				Restart
 			</button>				
-			
+		</div>
+		
+		<div class="row"  ng-show="userStatus == 1 || userStatus == 3">
 			<button				
 				class="btn btn-primary span2"
 				type="button"
 				ng-click="continueAnswering()">
-				Continue	
+				Continue
 			</button>	
 		</div>
 		
 		<div class="row"  ng-show="userStatus == 2">
 			<button				
-				class="btn span2 offset5"
+				class="btn span2"
 				type="button"
 				ng-click="showResults()">
 				Results
@@ -49,7 +52,7 @@
 			
 		<div class="row" ng-show="userStatus == 0">
 			<button				
-				class="btn btn-large btn-success span4 offset4"
+				class="btn btn-large btn-success span4"
 				type="button"
 				ng-click="start()">
 				Start	

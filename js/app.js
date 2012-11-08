@@ -9,6 +9,5 @@ angular.module('quotesClient', ['quotesClientServices']).
 			when('/game', {templateUrl: 'templates/quote-and-origins.html',   controller: QuoteAndOriginsController}).
 			when('/error/:errorCode', {templateUrl: 'templates/error.html',   controller: ErrorController}).
 			when('/result/', {templateUrl: 'templates/result.html',   controller: ResultController}).
-			when('/settings/', {templateUrl: 'templates/settings.html',   controller: SettingsController}).
 			otherwise({redirectTo: '/'});
 	}]);
